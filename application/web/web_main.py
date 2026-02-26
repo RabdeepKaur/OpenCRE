@@ -8,6 +8,7 @@ import logging
 import os
 import io
 import pathlib
+import re
 import urllib.parse
 from alive_progress import alive_bar
 from typing import Any
@@ -68,6 +69,26 @@ class SupportedFormats(Enum):
     OSCAL = "oscal"
 
 
+def _normalize_source_name(source: Any) -> str | None:
+    """
+    Normalize integration source names so analytics aggregation stays stable.
+    """
+    if source is None:
+        return None
+
+    normalized_source = str(source).strip().lower()
+    if not normalized_source:
+        return None
+
+    normalized_source = normalized_source.replace(" ", "-")
+    normalized_source = re.sub(r"[^a-z0-9._:-]", "-", normalized_source)
+    normalized_source = re.sub(r"-{2,}", "-", normalized_source).strip("-")
+    if not normalized_source:
+        return None
+
+    return normalized_source[:64]
+
+
 def extend_cre_with_tag_links(
     cre: defs.CRE, collection: db.Node_collection
 ) -> defs.CRE:
@@ -109,8 +130,12 @@ if os.environ.get("POSTHOG_API_KEY") and os.environ.get("POSTHOG_HOST"):
 @app.route("/rest/v1/id/<creid>", methods=["GET"])
 @app.route("/rest/v1/name/<crename>", methods=["GET"])
 def find_cre(creid: str = None, crename: str = None) -> Any:  # refer
+    source = _normalize_source_name(request.args.get("source"))
     if posthog:
-        posthog.capture(f"find_cre", f"id:{creid};name{crename}")
+        capture_id = f"id:{creid};name{crename}"
+        if source:
+            capture_id += f";source:{source}"
+        posthog.capture(f"find_cre", capture_id)
     database = db.Node_collection()
     include_only = request.args.getlist("include_only")
     # opt_osib = request.args.get("osib")
