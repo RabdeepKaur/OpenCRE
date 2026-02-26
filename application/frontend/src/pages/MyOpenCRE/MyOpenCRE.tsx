@@ -46,6 +46,25 @@ export const MyOpenCRE = () => {
     }
   };
 
+  const downloadTemplate = () => {
+    const headers = ['standard_name', 'standard_section', 'cre_id', 'notes'];
+
+    const csvContent = headers.join(',') + '\n';
+
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;',
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.setAttribute('download', 'myopencre_mapping_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   /* ------------------ FILE SELECTION ------------------ */
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,6 +143,9 @@ export const MyOpenCRE = () => {
       <div className="myopencre-section">
         <Button primary onClick={downloadCreCsv}>
           Download CRE Catalogue (CSV)
+        </Button>
+        <Button secondary onClick={downloadTemplate} style={{ marginLeft: '1rem' }}>
+          Download Mapping Template (CSV)
         </Button>
       </div>
 
